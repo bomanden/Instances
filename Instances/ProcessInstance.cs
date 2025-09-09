@@ -98,6 +98,7 @@ namespace Instances
         public void Dispose()
         {
             _process.Dispose();
+            _cancellationTokenRegister?.Dispose();
         }
 
         private void ReceiveExit(object sender, EventArgs e)
