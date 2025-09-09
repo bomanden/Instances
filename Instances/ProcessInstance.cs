@@ -18,6 +18,7 @@ namespace Instances
         private readonly TaskCompletionSource<bool> _stderrTask = new TaskCompletionSource<bool>();
         private readonly Queue<string> _outputData = new Queue<string>();
         private readonly Queue<string> _errorData = new Queue<string>();
+        private CancellationTokenRegistration? _cancellationTokenRegister;
 
         internal ProcessInstance(Process process, bool ignoreEmptyLines, int dataBufferCapacity)
         {
@@ -68,7 +69,7 @@ namespace Instances
         {
             if (cancellationToken != default)
             {
-                cancellationToken.Register(() =>
+                _cancellationTokenRegister = cancellationToken.Register(() =>
                 {
                     if (!_process.HasExited)
                     {
@@ -97,10 +98,12 @@ namespace Instances
         public void Dispose()
         {
             _process.Dispose();
+            _cancellationTokenRegister?.Dispose();
         }
 
         private void ReceiveExit(object sender, EventArgs e)
         {
+            _cancellationTokenRegister?.Dispose();
             Task.WhenAll(_stdoutTask!.Task, _stderrTask!.Task).ContinueWith(task =>
             {
                 Exited?.Invoke(sender, GetResult());
